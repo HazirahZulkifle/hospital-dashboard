@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospital Dashboard</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f5f7fa;
+}
+
+/* ===== LOGIN ===== */
+#loginBox{
+    position:fixed;
+    inset:0;
+    background:#f5f7fa;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+    position:fixed;
+    top:0; left:0;
+    width:250px;
+    height:100%;
+    background:#1e73be;
+    color:white;
+    transition:.3s;
+    overflow:auto;
+}
+.sidebar.closed{
+    width:0;
+    overflow:hidden;
+}
+.sidebar ul{
+    list-style:none;
+    padding:0;
+    margin:0;
+}
+.sidebar ul li{
+    padding:15px 20px;
+    cursor:pointer;
+}
+.sidebar ul li:hover{
+    background:rgba(255,255,255,.2);
+}
+
+/* ===== TOGGLE ===== */
+.toggle-btn{
+    position:fixed;
+    top:15px;
+    left:15px;
+    background:#1e73be;
+    color:white;
+    padding:10px 15px;
+    border-radius:5px;
+    cursor:pointer;
+    z-index:100;
+}
+
+/* ===== CONTENT ===== */
+.content{
+    margin-left:260px;
+    padding:20px;
+    transition:.3s;
+}
+.content.full{ margin-left:20px; }
+
+.section{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,.1);
+}
+
+/* ===== BOX ===== */
+.box-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:10px;
+    margin-top:20px;
+}
+.box{
+    background:#eef5ff;
+    padding:20px;
+    border-radius:8px;
+    text-align:center;
+    cursor:pointer;
+}
+.box:hover{ background:#dce9ff; }
+
+/* ===== STAFF ===== */
+.staff-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:25px;
+    margin-top:40px;
+}
+.staff-card{
+    background:#eef5ff;
+    padding:5px 10px;
+    border-radius:25px;
+    text-align:center ;
+}
+.staff-img{
+    width:150px;
+    height:140px;
+    object-fit:cover;
+    border-radius:10px;
+    margin-bottom:8px;
+}
+
+.gallery{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:15px;
+    margin-top:20px;
+}
+
+.gallery-img{
+    width:100%;
+    height:200px;
+    object-fit:cover;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginBox">
+    <div style="background:white;padding:30px;border-radius:10px;width:300px;text-align:center;">
+        <img src="images/logo_hosp.webp" width="300">
+        <h2>Dashboard Login</h2>
+        <h2>Hospital Pulau Pinang</h2>
+        <input type="password" id="password" placeholder="Password"
+               style="width:100%;padding:10px;margin:15px 0;">
+        <button onclick="checkPassword()" style="width:100%;padding:10px;
+                background:#1e73be;color:white;border:none;border-radius:5px;">
+            Login
+        </button>
+        <p id="error" style="color:red;display:none;">Password salah</p>
+    </div>
+</div>
+
+<div class="toggle-btn" onclick="toggleSidebar()">☰</div>
+
+<div class="sidebar" id="sidebar">
+    <ul>
+        <li onclick="showPage('main')">Main Page</li>
+        <li onclick="toggleSubmenu('generalMenu')">General ▾</li>
+        <ul id="generalMenu" style="display:none;padding-left:20px;">
+            <li onclick="showPage('Topic')">Topic</li>
+            <li onclick="showPage('Section')">Seksyen</li>
+        </ul>
+        <li onclick="showPage('forms')">Forms</li>
+        <li onclick="showPage('quality_doc')">Quality Document</li>
+        <li onclick="showPage('surat_memo')">Surat & Memo</li>
+        <li onclick="showPage('lab_handbook')">Lab Handbook</li>
+        <li onclick="toggleSubmenu('aktiviti_tahunan')">Aktiviti Tahunan ▾</li>
+        <ul id="aktiviti_tahunan" style="display:none;padding-left:20px;">
+            <li onclick="showPage('aktiviti2024')">2024</li>
+            <li onclick="showPage('aktiviti2025')">2025</li>
+        </ul>
+        <li onclick="logout()">Logout</li>
+    </ul>
+</div>
+
+<div class="content" id="content"></div>
+
+<script>
+// ===== CHECK LOGIN STATUS =====
+if (localStorage.getItem("isLoggedIn") === "true") {
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("loginBox").style.display = "none";
+    });
+}
+
+// ===== CHECK LOGIN + AUTO LOGOUT 30 MIN =====
+const MAX_TIME = 30 * 60 * 1000; // 30 minit
+
+if (localStorage.getItem("isLoggedIn") === "true") {
+    const loginTime = localStorage.getItem("loginTime");
+    const now = Date.now();
+
+    if (!loginTime || now - loginTime > MAX_TIME) {
+        localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("loginTime");
+    } else {
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("loginBox").style.display = "none";
+        });
+    }
+}
+
+const correctPassword="jabatan123";
+
+function checkPassword(){
+    if(document.getElementById("password").value === correctPassword){
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("loginTime", Date.now());
+        document.getElementById("loginBox").style.display = "none";
+    } else {
+        document.getElementById("error").style.display = "block";
+    }
+}
+
+function toggleSidebar(){
+    sidebar.classList.toggle("closed");
+    content.classList.toggle("full");
+}
+function toggleSubmenu(id){
+    const m=document.getElementById(id);
+    m.style.display=m.style.display==="none"?"block":"none";
+}
+
+const pages={
+main:`
+<div style="display:flex; justify-content:center; align-items:center; gap:100px; flex-wrap:wrap;">
+    <img src="images/logo kkm.webp" width="400">
+    <img src="images/logo heart.webp" width="200">
+</div>
+
+<h1 style="text-align:center; margin-top:20px;">HOSPITAL PULAU PINANG</h1>
+<h3 style="text-align:center;">CHEMICAL PATHOLOGY UNIT</h3>
+</center>
+
+<h2 style="text-align:center;margin-top:10px;">Senarai Staf</h2>
+<div class="staff-grid">
+
+  <div class="staff-card"><img src="images/hairani.webp" class="staff-img">
+    <h4>HAIRANI OTHMAN</h4>
+  </div>
+
+  <div class="staff-card"><img src="images/LEO2.webp" class="staff-img">
+    <h4>BENJAMIN</h4>
+  </div>
+
+  <div class="staff-card"><img src="images/LEO3.webp" class="staff-img">
+    <h4>AMIN</h4>
+  </div>
+
+  <div class="staff-card"><img src="images/LEO4.webp" class="staff-img">
+    <h4>MATYO</h4>
+  </div>
+</div>
+`,
+
+Topic:`
+<div class="section">
+    <h2>Topic</h2>
+    <div class="box-grid">
+        <div class="box" onclick="openFile('documents/calibration.pdf')">CALIBRATION</div>
+        <div class="box" onclick="openFile('documents/store.pdf')">STORE</div>
+        <div class="box" onclick="openFile('documents/aps.pdf')">APS</div>
+        <div class="box" onclick="openFile('documents/poct.pdf')">POCT</div>
+        <div class="box" onclick="openFile('documents/guidelines.pdf')">GUIDELINES</div>
+        <div class="box" onclick="openFile('documents/cme.pdf')">CME & KURSUS</div>
+    </div>
+</div>
+`,
+
+
+Section:`
+<div class="section">
+    <h2>Seksyen</h2>
+    <div class="box-grid">
+        <div class="box" onclick="openFile('documents/cc.pdf')">CC</div>
+        <div class="box" onclick="openFile('documents/corelab.pdf')">CORE LAB</div>
+        <div class="box" onclick="openFile('documents/hbatc.pdf')">HBATC</div>
+        <div class="box" onclick="openFile('documents/1a.pdf')">1A</div>
+    </div>
+</div>
+`,
+
+
+forms:`
+<div class="section">
+    <h2>Forms</h2>
+    <div class="box-grid">
+        <div class="box" onclick="openFile('documents/DDMAN.pdf')">Form A</div>
+        <div class="box" onclick="openFile('documents/formB.pdf')">Form B</div>
+        <div class="box" onclick="openFile('documents/formC.pdf')">Form C</div>
+    </div>
+</div>
+`,
+
+quality_doc:`
+<div class="section">
+    <h2>Quality Document</h2>
+    <div class="box-grid">
+        <div class="box" onclick="openFile('documents/formA.pdf')">Form A</div>
+        <div class="box" onclick="openFile('documents/formB.pdf')">Form B</div>
+        <div class="box" onclick="openFile('documents/formC.pdf')">Form C</div>
+    </div>
+</div>
+`,
+
+
+surat_memo:`
+<div class="section">
+    <h2>Surat & Memo</h2>
+    <div class="box-grid">
+        <div class="box" onclick="openFile('documents/suratA.pdf')">Surat A</div>
+        <div class="box" onclick="openFile('documents/suratB.pdf')">Surat B</div>
+    </div>
+</div>
+`, 
+
+
+lab_handbook:`
+<div class="section">
+    <h2>Forms</h2>
+    <div class="box-grid">
+        <div class="box" onclick="openFile('documents/formA.pdf')">Form A</div>
+        <div class="box" onclick="openFile('documents/formB.pdf')">Form B</div>
+        <div class="box" onclick="openFile('documents/formC.pdf')">Form C</div>
+    </div>
+</div>
+`, 
+
+aktiviti2024: `
+<div class="section">
+    <h2>Aktiviti 2024</h2>
+    <div class="box-grid">
+        <div class="box" onclick="showGallery('2024','raya_aidilfitri')">
+            Raya Aidilfitri
+        </div>
+        <div class="box" onclick="showGallery('2024','raya_cina')">
+            Raya Cina
+        </div>
+    </div>
+</div>
+`,
+
+aktiviti2025: `
+<div class="section">
+    <h2>Aktiviti 2025</h2>
+    <div class="box-grid">
+        <div class="box" onclick="showGallery('2025','raya_aidilfitri')">
+            Raya Aidilfitri
+        </div>
+    </div>
+</div>
+`,
+
+};
+
+// ===== SHOW PAGE =====
+function showPage(p){ content.innerHTML=pages[p]; }
+
+function showGallery(year, event){
+
+    const images = {
+        "2024_raya_aidilfitri": [
+            "activities/2024/raya_aidilfitri/1.webp",
+            "activities/2024/raya_aidilfitri/2.webp",
+            "activities/2024/raya_aidilfitri/3.webp"
+        ],
+        "2024_raya_cina": [
+            "activities/2024/raya_cina/1.webp",
+            "activities/2024/raya_cina/2.webp"
+        ],
+        "2025_raya_aidilfitri": [
+            "activities/2025/raya_aidilfitri/1.webp",
+            "activities/2025/raya_aidilfitri/2.webp"
+        ]
+    };
+
+    const key = year + "_" + event;
+
+    let html = `
+    <div class="section">
+        <h2>${event.replace('_',' ').toUpperCase()}</h2>
+        <div class="gallery">
+    `;
+
+    images[key].forEach(img=>{
+        html += `<img src="${img}" class="gallery-img">`;
+    });
+
+    html += `
+        </div>
+        <button onclick="showPage('aktiviti${year}')" style="margin-top:20px;">
+            ⬅ Back
+        </button>
+    </div>
+    `;
+
+    content.innerHTML = html;
+}
+
+// ===== OPEN PDF FILE =====
+function openFile(f){
+    content.innerHTML=`
+    <div class="section" style="text-align:center;">
+        <iframe src="${f}" style="width:100%;height:80vh;border:none;"></iframe>
+        <br><br>
+        <a href="${f}" download style="
+            display:inline-block;
+            padding:10px 20px;
+            background:#1e73be;
+            color:white;
+            border-radius:5px;
+            text-decoration:none;
+            font-weight:bold;
+        ">Download File</a>
+    </div>`;
+}
+
+// ===== LOGOUT =====
+function logout(){
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("loginTime");
+    location.reload();
+}
+
+showPage("main");
+
+</script>
+
+</body>
+</html>
